@@ -34,6 +34,22 @@ pipeline {
         }
       }
     }
+
+    stage('Update manifests') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'github_cred', usernameVariable: 'GH_USER', passwordVariable: 'GH_PASS')]) {
+          sh '''
+            sed -i "s|image: .*wanderlust-backend:.*|image: $BACKEND_IMAGE:$IMAGE_TAG|" kubernetes/backend.yaml
+            sed -i "s|image: .*wanderlust-frontend:.*|image: $FRONTEND_IMAGE:$IMAGE_TAG|" kubernetes/frontend.yaml
+            git config user.email "jenkins@local"
+            git config user.name "jenkins"
+            git add kubernetes/
+            git commit -m "ci: update images to $IMAGE_TAG" || exit 0
+            git push https://$GH_USER:$GH_PASS@github.com/Sharath-1863/wanderlust-gitops.git HEAD:main
+          '''
+        }
+      }
+    }
   }
 
   post {
